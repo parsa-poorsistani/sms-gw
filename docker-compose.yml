@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: sms
+      POSTGRES_PASSWORD: sms
+      POSTGRES_DB: sms
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sms"]
+      interval: 2s
+      retries: 15
+
+  gateway:
+    build: .
+    environment:
+      SMS_GW_POSTGRES_HOST: db
+      SMS_GW_POSTGRES_USER: sms
+      SMS_GW_POSTGRES_PASSWORD: sms
+      SMS_GW_DISPATCHER_STANDARD_WORKERS: ${SMS_GW_DISPATCHER_STANDARD_WORKERS:-124}
+      SMS_GW_DISPATCHER_EXPRESS_WORKERS: ${SMS_GW_DISPATCHER_EXPRESS_WORKERS:-32}
+      SMS_GW_DISPATCHER_BATCH_SIZE: ${SMS_GW_DISPATCHER_BATCH_SIZE:-100}
+      SMS_GW_DISPATCHER_EXPRESS_BATCH_SIZE: ${SMS_GW_DISPATCHER_EXPRESS_BATCH_SIZE:-10}
+      SMS_GW_POSTGRES_MAX_OPEN_CONNECTIONS: ${SMS_GW_POSTGRES_MAX_OPEN_CONNECTIONS:-32}
+      SMS_GW_PROVIDER_LATENCY: ${SMS_GW_PROVIDER_LATENCY:-50ms}
+      SMS_GW_PROVIDER_FAILURE_RATE: ${SMS_GW_PROVIDER_FAILURE_RATE:-0.02}
+      SMS_GW_PROVIDER_LATENCY_SCHEDULE: ${SMS_GW_PROVIDER_LATENCY_SCHEDULE:-}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

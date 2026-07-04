@@ -1,0 +1,85 @@
+# Demo credentials. In a real cluster this Secret comes from a secret manager
+# (sealed-secrets, external-secrets, Vault), never from a file in git.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+  namespace: sms-gw
+type: Opaque
+stringData:
+  POSTGRES_USER: sms
+  POSTGRES_PASSWORD: sms-local-dev
+  POSTGRES_DB: sms
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: sms-gw
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# StatefulSet rather than Deployment: stable identity + a PVC that survives
+# pod restarts, so your data outlives `kubectl delete pod`.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: sms-gw
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres-credentials
+          env:
+            # Default PGDATA is the volume root, which contains lost+found on
+            # some provisioners; a subdirectory avoids initdb refusing to run.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "sms", "-d", "sms"]
+            initialDelaySeconds: 5
+            periodSeconds: 3
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "sms", "-d", "sms"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

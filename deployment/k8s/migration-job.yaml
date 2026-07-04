@@ -1,0 +1,50 @@
+# Runs schema migrations as a one-shot Job BEFORE the gateway rolls out.
+# This removes the startup race where multiple serve replicas try to apply
+# the same migration concurrently: by the time replicas boot, everything is
+# already recorded in _schema_migrations and auto-migrate is a no-op.
+#
+# Jobs are immutable; the run script deletes and re-applies this on each deploy.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sms-gw-migrate
+  namespace: sms-gw
+spec:
+  # Never + a small backoffLimit: each retry is a NEW pod and FAILED PODS ARE
+  # KEPT, so `kubectl logs` always has something to show. (OnFailure restarts
+  # the container in-place and the job controller deletes the pod once the
+  # backoff limit is hit — which is how a crash becomes "No resources found".)
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: sms-gw-migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: sms-gw:local
+          imagePullPolicy: Never   # image is built inside minikube's docker
+          args: ["migrate"]        # overrides CMD ["serve"]
+          envFrom:
+            - configMapRef:
+                name: sms-gw-config
+          env:
+            - name: SMS_GW_POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: SMS_GW_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi

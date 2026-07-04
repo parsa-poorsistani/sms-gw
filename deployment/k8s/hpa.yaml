@@ -1,0 +1,22 @@
+# Optional: requires metrics-server (the run script enables the minikube addon).
+# CPU is the right signal for the API tier; the dispatcher tier — if split out
+# later — should scale on queue depth / oldest-pending age via custom metrics.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sms-gw
+  namespace: sms-gw
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sms-gw
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60

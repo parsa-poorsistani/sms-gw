@@ -1,0 +1,18 @@
+# Non-secret runtime configuration, injected as SMS_GW_* env vars.
+# Viper maps SMS_GW_POSTGRES_HOST -> postgres.host, etc.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sms-gw-config
+  namespace: sms-gw
+data:
+  SMS_GW_POSTGRES_HOST: postgres
+  SMS_GW_POSTGRES_PORT: "5432"
+  SMS_GW_POSTGRES_DBNAME: sms
+  SMS_GW_POSTGRES_SSLMODE: disable
+  SMS_GW_POSTGRES_MIGRATIONS_PATH: /migrations
+  SMS_GW_DISPATCHER_STANDARD_WORKERS: "32"
+  SMS_GW_DISPATCHER_EXPRESS_WORKERS: "16"
+  SMS_GW_DISPATCHER_BATCH_SIZE: "100"
+  SMS_GW_PROVIDER_LATENCY: 50ms
+  SMS_GW_PROVIDER_FAILURE_RATE: "0.05"

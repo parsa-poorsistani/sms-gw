@@ -1,0 +1,39 @@
+server:
+  listen_addr: ":8080"
+  read_header_timeout: 5s
+  shutdown_timeout: 10s
+
+postgres:
+  host: localhost
+  port: 5432
+  dbname: sms
+  sslmode: disable
+  # Credentials are not stored here. Set via environment:
+  #   SMS_GW_POSTGRES_USER
+  #   SMS_GW_POSTGRES_PASSWORD
+  # Or provide a full connection string:
+  #   SMS_GW_POSTGRES_DATABASE_URL=postgres://user:pass@host:5432/db?sslmode=disable
+  max_open_connections: 32
+  max_idle_connections: 16
+  conn_max_lifetime: 30m
+  conn_max_idle_time: 5m
+  migrations_path: migrations
+
+dispatcher:
+  standard_workers: 16 
+  express_workers: 8
+  batch_size: 50
+  express_batch_size: 5   # small: no OTP should queue behind 99 others in one batch
+  poll_interval: 200ms
+  max_attempts: 5
+  send_timeout: 5s
+  claim_timeout: 2m        # 'sending' lease; janitor requeues rows older than this
+  janitor_interval: 30s
+
+provider:
+  latency: 50ms
+  failure_rate: 0.02
+
+metrics:
+  enabled: true
+  path: /metrics
