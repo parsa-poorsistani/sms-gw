@@ -313,4 +313,3 @@ Dockerfile                 multi-stage; config + migrations baked in;
                            ENTRYPOINT binary, CMD "serve"
 docker-compose.yml         local dev + load-test substrate (env passthrough)
 ```
-# sms-gw
