@@ -20,8 +20,8 @@ postgres:
   migrations_path: migrations
 
 dispatcher:
-  standard_workers: 16 
-  express_workers: 8
+  standard_workers: 124 
+  express_workers: 32
   batch_size: 50
   express_batch_size: 5   # small: no OTP should queue behind 99 others in one batch
   poll_interval: 200ms

@@ -27,8 +27,6 @@ send rates.
 ```bash
 docker compose up --build          # API on http://localhost:8080
 
-./deployment/run-minikube.sh       # builds image in-cluster, migrates, deploys, smoke-tests
-
 ./deployment/load/run-load-test.sh                      # 1,200 msg/s x 3m, drain + ledger checks
 MODE=exhaustion FUND=2000 ./deployment/load/run-load-test.sh   # credit invariant under contention
 MODE=spikes ./deployment/load/run-load-test.sh          # 8m production-shaped run (spikes + brownout)
@@ -136,13 +134,6 @@ Express (OTP-class) messages get a **dedicated worker pool** claiming only
 physically cannot occupy express workers, so express delivery latency is
 bounded by express arrival rate and express capacity only.
 
-Provisioning follows Little's law: **capacity = workers ÷ per-send latency**
-(one worker at 50 ms delivers 20 msg/s). Batch size matters independently:
-batches deliver sequentially, so the last message in a batch waits
-(batch_size − 1) × latency behind its batchmates — batch size sets the
-**tail-latency floor**, worker count sets **throughput**. Both effects are
-measured below, and both match their theoretical values.
-
 **Measured:** during an ad-campaign spike that drove *standard* delivery p99
 to 14.05 s, *express* p99 in the same minute was 0.77 s — an 18× isolation
 gap under one database, one process, one operator. (See
@@ -184,10 +175,10 @@ Env mapping: `SMS_GW_POSTGRES_HOST` → `postgres.host`.
 | `postgres.host/port/dbname/sslmode/user/password` | localhost/5432/sms/disable/–/– | connection |
 | `postgres.max_open_connections` | 32 | pool size per process |
 | `postgres.migrations_path` | `/migrations` (in image) | migration SQL dir |
-| `dispatcher.standard_workers` | 256 | bulk pool size |
+| `dispatcher.standard_workers` | 124 | bulk pool size |
 | `dispatcher.express_workers` | 32 | express pool size |
-| `dispatcher.batch_size` | 50 | bulk claim batch |
-| `dispatcher.express_batch_size` | 5 | express claim batch (tail-latency floor) |
+| `dispatcher.batch_size` | 100 | bulk claim batch |
+| `dispatcher.express_batch_size` | 10 | express claim batch (tail-latency floor) |
 | `dispatcher.poll_interval` | 200ms | idle backoff |
 | `dispatcher.max_attempts` | 5 | retries before terminal fail + refund |
 | `dispatcher.send_timeout` | 5s | per-send provider timeout |

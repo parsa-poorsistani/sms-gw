@@ -38,8 +38,8 @@ command -v k6 >/dev/null     || die "k6 not found (brew install k6)"
 info "Starting stack (fresh DB), dispatcher sized for ${RATE}/s"
 docker compose down -v >/dev/null 2>&1 || true
 LATENCY_SCHEDULE=""
-DEFAULT_WORKERS=120
-DEFAULT_EXPRESS_WORKERS=16
+DEFAULT_WORKERS=124
+DEFAULT_EXPRESS_WORKERS=32
 if [[ "$MODE" == "spikes" ]]; then
   # Operator brownout window inside the run: 50ms -> 200ms at 5:30 -> back at 7:00.
   LATENCY_SCHEDULE="0s:50ms,330s:200ms,420s:50ms"
